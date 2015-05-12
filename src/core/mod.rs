@@ -1,6 +1,7 @@
 use std::fmt;
 
 pub mod persistence;
+pub mod editor;
 
 #[derive(Debug)]
 pub struct Note {

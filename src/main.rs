@@ -7,6 +7,7 @@ use getopts::{Options,Matches};
 
 use nt::core::Note;
 use nt::core::persistence::Store;
+use nt::core::editor::edit_note;
 use nt::core::persistence::Search;
 use nt::core::persistence::sqlite::SQLiteStore;
 
@@ -97,6 +98,20 @@ fn main() {
         return;
     }
     
+    if matches.opt_present("e") {
+        let note_id_str = matches.opt_str("e").unwrap();
+        let note_id = match note_id_str.parse::<isize>() {
+            Ok(id) => id,
+            _ => {
+                println!("Invalid id {}", note_id_str);
+                return;
+            }
+        };
+        let note = store.get(note_id).unwrap();
+        edit_note(&note);
+        return;
+    }
+
     let timespec = time::get_time();
     let content: &str = &format!("{}", timespec.sec);
     let mut note = Note::new(None, "Curent time", content);
@@ -111,6 +126,7 @@ fn get_options() -> Options {
     let mut opts = Options::new();
     opts.optopt("n", "new", "start a note with title", "TITLE");
     opts.optopt("d", "display", "show note contents", "NOTE_ID");
+    opts.optopt("e", "edit", "edit a note", "NOTE_ID");
     opts.optopt("x", "delete", "delete a note", "NOTE_ID");
     opts.optopt("s", "search", "search for a textual pattern", "PATTERN");
     opts.optflag("h", "help", "print this help menu");

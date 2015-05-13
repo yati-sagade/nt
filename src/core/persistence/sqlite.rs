@@ -16,7 +16,7 @@ static ALL_NOTES_SQL: &'static str = "SELECT id, name, content, created, last_up
 
 static NOTE_INSERT_SQL: &'static str = "INSERT INTO notes(name, content) VALUES(?, ?);";
 
-static NOTE_UPDATE_SQL: &'static str = "UPDATE TABLE notes SET name=?, content=? WHERE id=?;";
+static NOTE_UPDATE_SQL: &'static str = "UPDATE notes SET name=?, content=? WHERE id=?;";
 
 static NOTE_BY_ID_SQL: &'static str = "SELECT id, name, content, created, last_updated FROM notes WHERE id=?;";
 
@@ -93,7 +93,13 @@ impl<'a> Store<'a> for SQLiteStore {
     fn put(&mut self, note: &mut Note) -> bool {
         match note.id {
             Some(id) => {
-                let mut cursor = self.db.prepare(NOTE_UPDATE_SQL, &None).unwrap();
+                let mut cursor = match self.db.prepare(NOTE_UPDATE_SQL, &None) {
+                    Ok(cursor) => cursor,
+                    Err(e) => {
+                        println!("{}", self.db.get_errmsg());
+                        panic!(e);
+                    }
+                };
                 let args: &[BindArg] = &[BindArg::Text(note.name.clone()),
                                          BindArg::Text(note.content.clone()),
                                          BindArg::Integer(id)];

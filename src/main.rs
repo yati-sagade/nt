@@ -7,13 +7,16 @@ use getopts::{Options,Matches};
 
 use nt::core::Note;
 use nt::core::persistence::Store;
-use nt::core::editor::edit_note;
+use nt::core::editor;
 use nt::core::persistence::Search;
 use nt::core::persistence::sqlite::SQLiteStore;
 
+// Whether new notes should be read from stdin. If unset, the system editor
+// is used.
+const READ_FROM_STDIN: bool = false;
+
 
 fn main() {
-
     let args: Vec<String> = std::env::args().collect();
     let program = args[0].clone();
     let opts = get_options();
@@ -40,10 +43,17 @@ fn main() {
     if matches.opt_present("n") {
         println!("Enter note body followed by EOF (Ctrl + D on UNIX): ");
         let note_name = matches.opt_str("n").unwrap();
+        
         let stdin = std::io::stdin();
         let mut content = String::new();
-        stdin.lock().read_to_string(&mut content).unwrap();
-        let mut note = Note::new(None, &note_name, &content);
+        let mut note: Note;
+        if READ_FROM_STDIN {
+            stdin.lock().read_to_string(&mut content).unwrap();
+        }
+        note = Note::new(None, &note_name, &content);
+        if !READ_FROM_STDIN {
+            note = editor::edit_note(&mut note).unwrap();
+        }
         store.put(&mut note);
         return;
     }
@@ -108,7 +118,12 @@ fn main() {
             }
         };
         let note = store.get(note_id).unwrap();
-        edit_note(&note);
+        let mut new_note = match editor::edit_note(&note) {
+            Ok(note) => note,
+            Err(e) => panic!(e),
+        };
+        store.put(&mut new_note);
+        println!("Done");
         return;
     }
 
